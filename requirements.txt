@@ -1,3 +1,6 @@
 setfit
 datasets
-git+https://github.com/argilla-io/argilla.git@2606-bug-in-datasetfortextclassification_prepare_for_training_with_transformers-when-multi_label=true
+argilla==1.6.*
+small_text
+schedule
+prodict
