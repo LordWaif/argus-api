@@ -1,6 +1,5 @@
 #%%
 import argilla as rg
-import logging
 import pandas as pd
 from small_text import TransformersDataset
 #%%
@@ -63,7 +62,9 @@ indptr = np.asarray(range(0,7841,7))
 y = csr_matrix((data,indices,indptr),shape=(1120,7),dtype=np.int)
 
 df_train = dataframe[0:900]
+df_train.reset_index(drop=True,inplace=True)
 df_test = dataframe[900:]
+df_test.reset_index(drop=True,inplace=True)
 train = TextDataset.from_arrays(df_train['text'], y[0:900], target_labels=target_labels)
 test = TextDataset.from_arrays(df_test['text'], y[900:], target_labels=target_labels)
 #%%
@@ -72,17 +73,17 @@ from small_text.integrations.transformers.classifiers.setfit import SetFitModelA
 from small_text.integrations.transformers.classifiers.factories import SetFitClassificationFactory
 
 
-num_classes = 4
+num_classes = 7
 
 sentence_transformer_model_name = 'sentence-transformers/paraphrase-mpnet-base-v2'
 setfit_model_args = SetFitModelArguments(sentence_transformer_model_name)
 clf_factory = SetFitClassificationFactory(setfit_model_args, 
-                                          num_classes)
+                                          num_classes,classification_kwargs={'multi_label':True})
+
 #%%
 # Instance ActiveLearning
 from small_text import (
     PoolBasedActiveLearner, 
-    random_initialization_balanced,
     BreakingTies,
     SubsamplingQueryStrategy
 )
@@ -90,7 +91,7 @@ from small_text import (
 # define a query strategy and initialize a pool-based active learner
 query_strategy = SubsamplingQueryStrategy(BreakingTies())
 # suppress progress bars in jupyter notebook
-setfit_train_kwargs = {'show_progress_bar': False}
+setfit_train_kwargs = {'show_progress_bar': True}
 active_learner = PoolBasedActiveLearner(clf_factory, query_strategy, train, fit_kwargs={'setfit_train_kwargs': setfit_train_kwargs})
 #%%
 # Insert Initial Data
@@ -100,7 +101,7 @@ np.random.seed(42)
 
 
 # Number of samples in our queried batches
-NUM_SAMPLES = 20
+NUM_SAMPLES = 2
 
 # Randomly draw an initial subset from the data pool
 initial_indices = random_initialization(train, NUM_SAMPLES)
@@ -163,6 +164,17 @@ from sklearn.metrics import accuracy_score
 
 # Define some helper variables
 ACCURACIES = []
+def to_csr_matrix(y):
+    _y = list()
+    for i in y:
+        aux = np.zeros(7)
+        for j in i:
+            aux[j] = 1
+        _y.extend(aux)
+    _y = np.asarray(_y)
+    indices = np.tile(np.arange(num_classes),len(y))
+    indptr = np.asarray(range(0,len(y)*num_classes+1,num_classes))
+    return csr_matrix((_y,indices,indptr),shape=(len(y),num_classes),dtype=np.int)
 
 # Set up the active learning loop with the listener decorator
 @listener(
@@ -177,7 +189,8 @@ def active_learning_loop(records, ctx):
     # 1. Update active learner
     print(f"Updating with batch_id {ctx.query_params['batch_id']} ...")
     y = np.array([LABEL2INT(rec.annotation) for rec in records])
-
+    y = to_csr_matrix(y)
+    
     # initial update
     if ctx.query_params["batch_id"] == 0:
         indices = np.array([rec.id for rec in records])
@@ -218,4 +231,8 @@ def active_learning_loop(records, ctx):
 #%%
 # Start active learning
 active_learning_loop.start()
+#%%
+active_learning_loop._LOGGER
+#%%
+active_learning_loop.stop()
 # %%
