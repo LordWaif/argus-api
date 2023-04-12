@@ -78,7 +78,7 @@ num_classes = 7
 sentence_transformer_model_name = 'sentence-transformers/paraphrase-mpnet-base-v2'
 setfit_model_args = SetFitModelArguments(sentence_transformer_model_name)
 clf_factory = SetFitClassificationFactory(setfit_model_args, 
-                                          num_classes,classification_kwargs={'multi_label':True})
+                                          num_classes,classification_kwargs={'multi_label':True,'mini_batch_size':1})
 
 #%%
 # Instance ActiveLearning
@@ -101,7 +101,7 @@ np.random.seed(42)
 
 
 # Number of samples in our queried batches
-NUM_SAMPLES = 2
+NUM_SAMPLES = 5
 
 # Randomly draw an initial subset from the data pool
 initial_indices = random_initialization(train, NUM_SAMPLES)
@@ -129,7 +129,7 @@ records = [
 # Log initial records to Rubrix
 rg.log(records, DATASET_NAME)
 #%%
-from setfit import SetFitTrainer,SetFitModel
+'''from setfit import SetFitTrainer,SetFitModel
 from sentence_transformers.losses import CosineSimilarityLoss
 from datasets.arrow_dataset import Dataset
 
@@ -155,15 +155,17 @@ trainer = SetFitTrainer(
 
 # Train and evaluate
 trainer.train()
-metrics = trainer.evaluate()
+metrics = trainer.evaluate()'''
 
-#%%
 # Define listener
 from argilla.listeners import listener
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import hamming_loss
 
 # Define some helper variables
 ACCURACIES = []
+HAMMING_LOSS = []
+TRUSTS = []
 def to_csr_matrix(y):
     _y = list()
     for i in y:
@@ -204,13 +206,31 @@ def active_learning_loop(records, ctx):
     print("Querying new data points ...")
     queried_indices = active_learner.query(num_samples=NUM_SAMPLES)
     new_batch = ctx.query_params["batch_id"] + 1
+    y_to_log = \
+    to_csr_matrix(
+        np.array(
+            [
+                LABEL2INT(rotulos) 
+                for rotulos in 
+                df_train.iloc[queried_indices]['rotulos']
+            ]
+        )
+    )
+    x_to_log = df_train.iloc[queried_indices]['text']
+    to_log = TextDataset.from_arrays(
+                x_to_log,
+                y_to_log,
+                target_labels=target_labels)
+    proba_log = active_learner.classifier.predict(to_log,return_proba=True)[1]
     new_records = [
         rg.TextClassificationRecord(
             text=df_train.iloc[idx].text,
+            prediction=list(zip(LABELS,proba_log[ind])),
             metadata={"batch_id": new_batch},
             id=idx,
+            multi_label=True
         )
-        for idx in queried_indices
+        for ind,idx in enumerate(queried_indices)
     ]
 
     # 3. Log the batch to Rubrix
@@ -218,12 +238,36 @@ def active_learning_loop(records, ctx):
 
     # 4. Evaluate current classifier on the test set
     print("Evaluating current classifier ...")
+    csr,proba = active_learner.classifier.predict(to_log,return_proba=True)
+    ## Têm um detalhe aqui, ele tá usando os y do cs original e não do que foi rotulado
     accuracy = accuracy_score(
-        test.y,
-        active_learner.classifier.predict(test),
+        np.asarray(to_log.y.todense()),
+        np.asarray(csr.todense()),
     )
 
+    hamming = hamming_loss(
+        np.asarray(to_log.y.todense()),
+        np.asarray(csr.todense()),
+    )
+
+    i,j = np.where((np.asarray(to_log.y.todense())*proba)>0)
+    trust = (np.asarray(to_log.y.todense())*proba)
+    acc_trust = 0
+    for _j,_i in list(zip(j,i)):
+        acc_trust+=trust[_i][_j]
+    avg_trust = acc_trust/len(j)
+
+    i,j = np.where((1-(np.asarray(to_log.y.todense()))*proba)>0)
+    not_trust = (np.asarray(to_log.y.todense())*proba)
+    acc_not_trust = 0
+    for _j,_i in list(zip(j,i)):
+        acc_not_trust+=not_trust[_i][_j]
+    avg_not_trust = acc_not_trust/len(j)
+
+    avg_trust_delta = avg_trust - avg_not_trust
+    TRUSTS.append(avg_trust_delta)
     ACCURACIES.append(accuracy)
+    HAMMING_LOSS.append(hamming)
     ctx.query_params["batch_id"] = new_batch
     print("Done!")
 
@@ -232,7 +276,7 @@ def active_learning_loop(records, ctx):
 # Start active learning
 active_learning_loop.start()
 #%%
-active_learning_loop._LOGGER
+#active_learning_loop._LOGGER
 #%%
-active_learning_loop.stop()
+#active_learning_loop.stop()
 # %%
