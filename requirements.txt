@@ -4,3 +4,4 @@ argilla==1.6.*
 small_text
 schedule
 prodict
+flask_sqlalchemy

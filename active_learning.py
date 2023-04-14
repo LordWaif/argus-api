@@ -28,6 +28,8 @@ from metrics import(
 )
 #%%
 from argilla.listeners import listener
+import requests
+from decouple import config
 # Set up the active learning loop with the listener decorator
 @listener(
     dataset=DATASET_NAME,
@@ -97,6 +99,20 @@ def active_learning_loop(records, ctx):
     #ACCURACIES.append(accuracy(to_log,csr))
     LOGGER.info(f'HAMMING LOSS {hamming(to_log,csr)}')
     #HAMMING_LOSS.append(hamming_loss(to_log,csr))
+    SECRET_KEY = config('SECRET_KEY') or 'this is a secret'
+    response = requests.post(
+        url='http://10.2.50.30:5001/metrics',
+        headers = {"Authorization": f"{SECRET_KEY}"},
+        json={
+            "accuracy": accuracy(to_log,csr),
+            "hamming_loss": hamming(to_log,csr),
+            "trusting": trusting(to_log,proba),
+            "batch":ctx.query_params["batch_id"]
+        }
+    )
+    if response.status_code != 200:
+        raise f"Falha em replica para api {response.status.code}"
+    
     ctx.query_params["batch_id"] = new_batch
     print("Done!")
 
