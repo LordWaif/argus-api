@@ -30,7 +30,27 @@ from metrics import(
 from argilla.listeners import listener
 import requests
 from decouple import config
+import aiohttp
+import uuid
+
+async def obter_dados():
+    async with aiohttp.ClientSession() as session:
+        async with session.get('http://10.2.50.30:5001/checkpoint') as response:
+            dados = await response.json()
+            return dados
 # Set up the active learning loop with the listener decorator
+requests.post(
+        url='http://10.2.50.30:5001/status',
+        json={
+            "status": "iniciado",
+        }
+    )
+requests.post(
+        url='http://10.2.50.30:5001/dataset',
+        json={
+            "dataset_name": DATASET_NAME
+        }
+    )
 @listener(
     dataset=DATASET_NAME,
     query="status:Validated AND metadata.batch_id:{batch_id}",
@@ -39,9 +59,15 @@ from decouple import config
     batch_id=0
 )
 def active_learning_loop(records, ctx):
-
     # 1. Update active learner
+        
     print(f"Updating with batch_id {ctx.query_params['batch_id']} ...")
+    requests.post(
+        url='http://10.2.50.30:5001/status',
+        json={
+            "status": "active learning",
+        }
+    )
     y = np.array([LABEL2INT(rec.annotation) for rec in records])
     y = to_csr_matrix(y)
     
@@ -102,7 +128,6 @@ def active_learning_loop(records, ctx):
     SECRET_KEY = config('SECRET_KEY') or 'this is a secret'
     response = requests.post(
         url='http://10.2.50.30:5001/metrics',
-        headers = {"Authorization": f"{SECRET_KEY}"},
         json={
             "accuracy": accuracy(to_log,csr),
             "hamming_loss": hamming(to_log,csr),
@@ -110,6 +135,20 @@ def active_learning_loop(records, ctx):
             "batch":ctx.query_params["batch_id"]
         }
     )
+    requests.post(
+        url='http://10.2.50.30:5001/status',
+        headers = {"Authorization": f"{SECRET_KEY}"},
+        json={
+            "status": "checkpoint",
+        }
+    )
+    
+    checkpoint = requests.get(
+        url=f'http://10.2.50.30:5001/checkpoint/{DATASET_NAME}'
+    )
+    if checkpoint != None:
+        active_learner.save(f'./otp_{uuid.uuid4()}.pth')
+
     if response.status_code != 200:
         raise f"Falha em replica para api {response.status.code}"
     
