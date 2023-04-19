@@ -1,0 +1,161 @@
+{
+    "client": "Thunder Client",
+    "collectionName": "flask",
+    "dateExported": "2023-04-19T12:43:28.872Z",
+    "version": "1.1",
+    "folders": [
+        {
+            "_id": "568c176e-bacf-4f2e-9a4f-f4e2432aff5c",
+            "name": "POST",
+            "containerId": "",
+            "created": "2023-04-19T12:34:38.331Z",
+            "sortNum": 10000
+        },
+        {
+            "_id": "e11e786e-9e75-4ac5-ba38-6799fa7e0c93",
+            "name": "GET",
+            "containerId": "",
+            "created": "2023-04-19T12:34:54.762Z",
+            "sortNum": 20000
+        }
+    ],
+    "requests": [
+        {
+            "_id": "085529c1-0788-421d-8057-d96ccfc65608",
+            "colId": "cf73fdb1-d035-463c-a28c-48012f775929",
+            "containerId": "e11e786e-9e75-4ac5-ba38-6799fa7e0c93",
+            "name": "/datasets/1/status",
+            "url": "/datasets/1/status",
+            "method": "GET",
+            "sortNum": 10000,
+            "created": "2023-04-19T12:17:51.583Z",
+            "modified": "2023-04-19T12:35:04.192Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        },
+        {
+            "_id": "21d7c4b0-e22f-412d-8b42-53326223664c",
+            "colId": "cf73fdb1-d035-463c-a28c-48012f775929",
+            "containerId": "568c176e-bacf-4f2e-9a4f-f4e2432aff5c",
+            "name": "/datasets",
+            "url": "/datasets",
+            "method": "POST",
+            "sortNum": 30000,
+            "created": "2023-04-19T11:16:52.869Z",
+            "modified": "2023-04-19T12:34:43.511Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n    \"name\" : \"lima\",\n    \"rotulados\" : \"0\",\n    \"total\" : \"1000\",\n    \"batch_size\" : \"5\"\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "3be1c749-7a6d-49f6-bb70-cf2db170b697",
+            "colId": "cf73fdb1-d035-463c-a28c-48012f775929",
+            "containerId": "e11e786e-9e75-4ac5-ba38-6799fa7e0c93",
+            "name": "/datasets",
+            "url": "/datasets",
+            "method": "GET",
+            "sortNum": 40000,
+            "created": "2023-04-19T11:20:03.703Z",
+            "modified": "2023-04-19T12:35:06.721Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        },
+        {
+            "_id": "cb833d42-26c1-4336-be6f-73f6a0d9b91f",
+            "colId": "cf73fdb1-d035-463c-a28c-48012f775929",
+            "containerId": "568c176e-bacf-4f2e-9a4f-f4e2432aff5c",
+            "name": "/datasets/1/status",
+            "url": "/datasets/1/status",
+            "method": "POST",
+            "sortNum": 40000,
+            "created": "2023-04-19T12:16:11.309Z",
+            "modified": "2023-04-19T12:34:45.632Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n    \"name\" : \"checkpoint\",\n    \"batch_id\" : \"0\"\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "5eb49a63-d510-49c3-8524-e7eef9639092",
+            "colId": "cf73fdb1-d035-463c-a28c-48012f775929",
+            "containerId": "e11e786e-9e75-4ac5-ba38-6799fa7e0c93",
+            "name": "/datasets/1/metricas",
+            "url": "/datasets/1/metrics",
+            "method": "GET",
+            "sortNum": 50000,
+            "created": "2023-04-19T12:03:06.921Z",
+            "modified": "2023-04-19T12:35:07.609Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        },
+        {
+            "_id": "cf1a599b-3245-4b23-9760-9dba31e6ade7",
+            "colId": "cf73fdb1-d035-463c-a28c-48012f775929",
+            "containerId": "568c176e-bacf-4f2e-9a4f-f4e2432aff5c",
+            "name": "/dataset/1/metrics",
+            "url": "/datasets/1/metrics",
+            "method": "POST",
+            "sortNum": 50000,
+            "created": "2023-04-19T12:08:30.696Z",
+            "modified": "2023-04-19T12:34:46.888Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"accuracy\": 0.86,\n  \"hamming_loss\": 0.25,\n  \"trusting\": 0.89,\n  \"batch\":1\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "2fad43e4-c084-4b7f-9061-4dd875761462",
+            "colId": "cf73fdb1-d035-463c-a28c-48012f775929",
+            "containerId": "568c176e-bacf-4f2e-9a4f-f4e2432aff5c",
+            "name": "/datasets/1/checkpoint",
+            "url": "/datasets/1/checkpoint",
+            "method": "POST",
+            "sortNum": 60000,
+            "created": "2023-04-19T12:30:35.915Z",
+            "modified": "2023-04-19T12:34:48.625Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\r\n    \"batch_id\" : \"0\",\r\n    \"auto_labeling\" : \"False\"\r\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "74c34e9a-ee20-4cef-a914-9335b4551517",
+            "colId": "cf73fdb1-d035-463c-a28c-48012f775929",
+            "containerId": "e11e786e-9e75-4ac5-ba38-6799fa7e0c93",
+            "name": "/datasets/1/checkpoint",
+            "url": "/datasets/1/checkpoint",
+            "method": "GET",
+            "sortNum": 120000,
+            "created": "2023-04-19T12:35:55.531Z",
+            "modified": "2023-04-19T12:36:13.816Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        }
+    ],
+    "settings": {
+        "options": {
+            "baseUrl": "http://10.2.50.30:5001"
+        }
+    }
+}
