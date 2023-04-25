@@ -39,6 +39,7 @@ def post_dataset():
     dados = request.get_json()
     try:
         registro = Dataset(
+            id=dados['id'],
             name=dados['name'],
             rotulados=int(dados['rotulados']),
             total=int(dados['total']),
@@ -52,16 +53,28 @@ def post_dataset():
 
 @app.route('/datasets',methods=['GET'])
 def get_dataset():
-    nome = request.args.get('nome')
-    if nome:
-        dataset = Dataset.query.filter(Dataset.name==nome).first()
+    id = request.args.get('id')
+    if id:
+        dataset = Dataset.query.filter(Dataset.id==id).first()
         return jsonify(dataset.as_dict())
     else:
         dataset = Dataset.query.all()
         dataset = [i.as_dict() for i in dataset]
         return jsonify(dataset)
+    
+@app.route('/datasets/<string:dataset_id>',methods=['PATCH'])
+def patch_dataset(dataset_id):
+    dataset = Dataset.query.get(dataset_id)
+    if not dataset:
+        return jsonify({'mensagem': 'Dataset não encontrado'}), 404
+    updates = request.get_json()
+    for k,v in updates.items():
+        ac = getattr(dataset,k)
+        setattr(dataset, k, ac+v)
+    db.session.commit()
+    return jsonify(dataset.as_dict())
 
-@app.route('/datasets/<int:dataset_id>/metrics',methods=['POST'])
+@app.route('/datasets/<string:dataset_id>/metrics',methods=['POST'])
 def post_metrics(dataset_id):
     dataset = Dataset.query.get(dataset_id)
     if not dataset:
@@ -72,7 +85,7 @@ def post_metrics(dataset_id):
         "accuracy": 0.86,
         "hamming_loss": 0.25,
         "trusting": 0.89,
-        "batch": 1,
+        "batch_id": 1,
     }
     """
     dados = request.get_json()
@@ -80,14 +93,14 @@ def post_metrics(dataset_id):
         accuracy = float(dados['accuracy']),
         hamming_loss = float(dados['hamming_loss']),
         trusting = float(dados['trusting']),
-        batch_id=int(dados['batch']),
+        batch_id=int(dados['batch_id']),
         dataset_id=dataset_id)
     dataset.metricas.append(registro)
     db.session.add(registro)
     db.session.commit()
     return Response('Requisição POST recebida com sucesso!', status=200)
 
-@app.route('/datasets/<int:dataset_id>/metrics',methods=['GET'])
+@app.route('/datasets/<string:dataset_id>/metrics',methods=['GET'])
 def list_metrics(dataset_id):
     dataset = Dataset.query.get(dataset_id)
     if not dataset:
@@ -95,7 +108,7 @@ def list_metrics(dataset_id):
     metricas = [metrica.as_dict() for metrica in dataset.metricas]
     return jsonify(metricas)
 
-@app.route('/datasets/<int:dataset_id>/status',methods=['POST'])
+@app.route('/datasets/<string:dataset_id>/status',methods=['POST'])
 def post_status(dataset_id):
     """
     Formato do body
@@ -113,12 +126,12 @@ def post_status(dataset_id):
         name = dados['name'],
         batch_id=dados['batch_id'],
         dataset_id=dataset_id)
-    dataset.metricas.append(registro)
+    dataset.status.append(registro)
     db.session.add(registro)
     db.session.commit()
     return Response('Requisição POST recebida com sucesso!', status=200)
 
-@app.route('/datasets/<int:dataset_id>/status',methods=['GET'])
+@app.route('/datasets/<string:dataset_id>/status',methods=['GET'])
 def list_status(dataset_id):
     dataset = Dataset.query.get(dataset_id)
     if not dataset:
@@ -126,7 +139,7 @@ def list_status(dataset_id):
     status = [_status.as_dict() for _status in dataset.status]
     return jsonify(status)
 
-@app.route('/datasets/<int:dataset_id>/checkpoint',methods=['POST'])
+@app.route('/datasets/<string:dataset_id>/checkpoint',methods=['POST'])
 def post_checkpoint(dataset_id):
     """
     Formato do body
@@ -149,7 +162,7 @@ def post_checkpoint(dataset_id):
     db.session.commit()
     return Response('Requisição POST recebida com sucesso!', status=200)
 
-@app.route('/datasets/<int:dataset_id>/checkpoint',methods=['GET'])
+@app.route('/datasets/<string:dataset_id>/checkpoint',methods=['GET'])
 def list_checkpoint(dataset_id):
     dataset = Dataset.query.get(dataset_id)
     if not dataset:
@@ -160,5 +173,12 @@ def list_checkpoint(dataset_id):
 @app.route('/')
 def homepage():
     return "Bem vindo"
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+    return response
 
 app.run(host='0.0.0.0',port=5001)

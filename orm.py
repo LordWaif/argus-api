@@ -33,7 +33,7 @@ class Status(db.Model,DictMixin):
 
 class Dataset(db.Model,DictMixin):
     __tablename__ = "dataset"
-    id = db.Column(db.Integer, db.Sequence('stats_id_seq', increment=1), primary_key=True)
+    id = db.Column(db.String, primary_key=True)
 
     name = db.Column(db.String,unique=True)
     rotulados = db.Column(db.Integer)
@@ -43,7 +43,6 @@ class Dataset(db.Model,DictMixin):
     status = db.relationship('Status', backref='status', lazy='dynamic')
     metricas = db.relationship('Metricas', backref='metricas', lazy='dynamic')
     checkpoints = db.relationship('Checkpoint', backref='checkpoint', lazy='dynamic')
-    ...
 
 class Checkpoint(db.Model,DictMixin):
     __tablename__ = 'checkpoint'
