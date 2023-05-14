@@ -43,13 +43,18 @@ def post_dataset():
             name=dados['name'],
             rotulados=int(dados['rotulados']),
             total=int(dados['total']),
-            batch_size=int(dados['batch_size'])
+            batch_size=int(dados['batch_size']),
+            actual_batch=int(dados['actual_batch'])
             )
         db.session.add(registro)
         db.session.commit()
-        return Response('Requisição POST recebida com sucesso!', status=200)
     except:
-        return Response('BAD_REQUEST', status=400)
+        db.session.rollback()
+        dataset = Dataset.query.get(dados['id'])
+        setattr(dataset, 'rotulados', 0)
+        setattr(dataset, 'actual_batch', 0)
+        db.session.commit()
+    return Response('Requisição POST recebida com sucesso!', status=200)
 
 @app.route('/datasets',methods=['GET'])
 def get_dataset():
@@ -69,8 +74,8 @@ def patch_dataset(dataset_id):
         return jsonify({'mensagem': 'Dataset não encontrado'}), 404
     updates = request.get_json()
     for k,v in updates.items():
-        ac = getattr(dataset,k)
-        setattr(dataset, k, ac+v)
+        #ac = getattr(dataset,k)
+        setattr(dataset, k, v)
     db.session.commit()
     return jsonify(dataset.as_dict())
 
@@ -86,6 +91,7 @@ def post_metrics(dataset_id):
         "hamming_loss": 0.25,
         "trusting": 0.89,
         "batch_id": 1,
+        "jensenshannon": 0.5
     }
     """
     dados = request.get_json()
@@ -93,8 +99,12 @@ def post_metrics(dataset_id):
         accuracy = float(dados['accuracy']),
         hamming_loss = float(dados['hamming_loss']),
         trusting = float(dados['trusting']),
+        jensenshannon = float(dados['jensenshannon']),
+        entropy=float(dados['entropy']),
+
         batch_id=int(dados['batch_id']),
-        dataset_id=dataset_id)
+        dataset_id=dataset_id
+    )
     dataset.metricas.append(registro)
     db.session.add(registro)
     db.session.commit()
@@ -138,6 +148,16 @@ def list_status(dataset_id):
         return jsonify({'mensagem': 'Dataset não encontrado'}), 404
     status = [_status.as_dict() for _status in dataset.status]
     return jsonify(status)
+
+@app.route('/status/<string:status_id>',methods=['DELETE'])
+def del_status(status_id):
+    status = Status.query.get(status_id)
+    _s = jsonify(status.as_dict())
+    if not status:
+        return jsonify({'mensagem': 'Status não encontrado'}), 404
+    db.session.delete(status)
+    db.session.commit()
+    return _s
 
 @app.route('/datasets/<string:dataset_id>/checkpoint',methods=['POST'])
 def post_checkpoint(dataset_id):

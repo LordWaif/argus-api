@@ -18,6 +18,8 @@ class Metricas(db.Model,DictMixin):
     accuracy = db.Column(db.Float)
     hamming_loss = db.Column(db.Float)
     trusting = db.Column(db.Float)
+    jensenshannon = db.Column(db.Float)
+    entropy = db.Column(db.Float)
 
     dataset_id = db.Column(db.BigInteger, db.ForeignKey('dataset.id'), nullable=False)
 
@@ -39,6 +41,7 @@ class Dataset(db.Model,DictMixin):
     rotulados = db.Column(db.Integer)
     total = db.Column(db.Integer)
     batch_size = db.Column(db.Integer)
+    actual_batch = db.Column(db.Integer,nullable=True)
 
     status = db.relationship('Status', backref='status', lazy='dynamic')
     metricas = db.relationship('Metricas', backref='metricas', lazy='dynamic')
