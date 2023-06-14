@@ -2,6 +2,8 @@ from flask import request,Response,g,jsonify
 import sqlite3
 from app import app
 from app import DATABASE
+import json
+from datetime import datetime
 from orm import(
     Metricas,
     Dataset,
@@ -33,7 +35,8 @@ def post_dataset():
         "name" : "lima",
         "rotulados" : "0",
         "total" : "1000",
-        "batch_size" : "5"
+        "batch_size" : "5",
+        "isMulti_label" : true
     }
     """
     dados = request.get_json()
@@ -44,7 +47,8 @@ def post_dataset():
             rotulados=int(dados['rotulados']),
             total=int(dados['total']),
             batch_size=int(dados['batch_size']),
-            actual_batch=int(dados['actual_batch'])
+            actual_batch=int(dados['actual_batch']),
+            isMulti_label = bool(dados['isMulti_label'])
             )
         db.session.add(registro)
         db.session.commit()
@@ -80,46 +84,52 @@ def patch_dataset(dataset_id):
     return jsonify(dataset.as_dict())
 
 @app.route('/datasets/<string:dataset_id>/metrics',methods=['POST'])
-def post_metrics(dataset_id):
-    dataset = Dataset.query.get(dataset_id)
-    if not dataset:
-        return jsonify({'mensagem': 'Dataset não encontrado'}), 404
+def post_metrics(dataset_id:str):
     """
     Formato do body
     {
-        "accuracy": 0.86,
-        "hamming_loss": 0.25,
-        "trusting": 0.89,
-        "batch_id": 1,
-        "jensenshannon": 0.5
+        "accuracy": float,
+        "hamming_loss": float,
+        "trusting": float,
+        "batch_id": int,
+        "jensenshannon": float,
+        "precision" float,
+        "recall" : float,
+        "f1_score" : float
+
     }
     """
+    dataset:Dataset = Dataset.query.get(dataset_id)
     dados = request.get_json()
-    registro = Metricas(
-        accuracy = float(dados['accuracy']),
-        hamming_loss = float(dados['hamming_loss']),
-        trusting = float(dados['trusting']),
-        jensenshannon = float(dados['jensenshannon']),
-        entropy=float(dados['entropy']),
-
-        batch_id=int(dados['batch_id']),
-        dataset_id=dataset_id
-    )
+    if not dataset:
+        return jsonify({'mensagem': 'Dataset não encontrado'}), 404
+    registro = Metricas(batch_id=int(dados['batch_id']),dataset_id=dataset_id)
+    dados = request.get_json()
+    for k,v in dados.items():
+        setattr(registro, k, v)
     dataset.metricas.append(registro)
     db.session.add(registro)
     db.session.commit()
     return Response('Requisição POST recebida com sucesso!', status=200)
 
 @app.route('/datasets/<string:dataset_id>/metrics',methods=['GET'])
-def list_metrics(dataset_id):
+def list_metrics(dataset_id:str):
     dataset = Dataset.query.get(dataset_id)
     if not dataset:
         return jsonify({'mensagem': 'Dataset não encontrado'}), 404
     metricas = [metrica.as_dict() for metrica in dataset.metricas]
     return jsonify(metricas)
 
+@app.route('/datasets/<string:dataset_id>/metrics',methods=['DELETE'])
+def delete_metrics(dataset_id:str):
+    dataset = Dataset.query.get_or_404(dataset_id)
+    for metric in dataset.metrics:
+        db.session.delete(metric)
+    db.session.commit()
+    return 'As métricas associadas ao conjunto de dados foram excluídas com sucesso.'
+
 @app.route('/datasets/<string:dataset_id>/status',methods=['POST'])
-def post_status(dataset_id):
+def post_status(dataset_id:str):
     """
     Formato do body
     {
@@ -142,7 +152,7 @@ def post_status(dataset_id):
     return Response('Requisição POST recebida com sucesso!', status=200)
 
 @app.route('/datasets/<string:dataset_id>/status',methods=['GET'])
-def list_status(dataset_id):
+def list_status(dataset_id:str):
     dataset = Dataset.query.get(dataset_id)
     if not dataset:
         return jsonify({'mensagem': 'Dataset não encontrado'}), 404
@@ -150,7 +160,7 @@ def list_status(dataset_id):
     return jsonify(status)
 
 @app.route('/status/<string:status_id>',methods=['DELETE'])
-def del_status(status_id):
+def del_status(status_id:str):
     status = Status.query.get(status_id)
     _s = jsonify(status.as_dict())
     if not status:
@@ -160,7 +170,7 @@ def del_status(status_id):
     return _s
 
 @app.route('/datasets/<string:dataset_id>/checkpoint',methods=['POST'])
-def post_checkpoint(dataset_id):
+def post_checkpoint(dataset_id:str):
     """
     Formato do body
     {
@@ -183,7 +193,7 @@ def post_checkpoint(dataset_id):
     return Response('Requisição POST recebida com sucesso!', status=200)
 
 @app.route('/datasets/<string:dataset_id>/checkpoint',methods=['GET'])
-def list_checkpoint(dataset_id):
+def list_checkpoint(dataset_id:str):
     dataset = Dataset.query.get(dataset_id)
     if not dataset:
         return jsonify({'mensagem': 'Dataset não encontrado'}), 404
@@ -200,5 +210,20 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
     return response
+
+@app.route('/datasets/<string:dataset_id>',methods=['DELETE'])
+def del_dataset(dataset_id:str):
+    dataset:Dataset = Dataset.query.get_or_404(dataset_id)
+    bckp = {'dataset':dataset.as_dict(),'metricas':[_.as_dict() for _ in dataset.metricas]}
+    if not dataset:
+        return jsonify({'mensagem': 'Dataset não encontrado'}), 404
+    backup_filename = f'backups/{datetime.now()}_backup_resource_{dataset_id}.json'
+    with open(backup_filename, 'w') as backup_file:
+        backup_file.write(json.dumps(bckp,default=str))
+    for _ in dataset.metricas:
+        db.session.delete(_)
+    db.session.delete(dataset)
+    db.session.commit()
+    return jsonify({'mensagem': 'Recurso deletado'}), 200
 
 app.run(host='0.0.0.0',port=5001)

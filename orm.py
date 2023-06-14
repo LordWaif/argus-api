@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import inspect
 from datetime import datetime
 from app import app
 
@@ -16,10 +17,13 @@ class Metricas(db.Model,DictMixin):
     data_hora = db.Column(db.DateTime, default=datetime.utcnow)
 
     accuracy = db.Column(db.Float)
-    hamming_loss = db.Column(db.Float)
-    trusting = db.Column(db.Float)
-    jensenshannon = db.Column(db.Float)
-    entropy = db.Column(db.Float)
+    hamming_loss = db.Column(db.Float,nullable=True)
+    trusting = db.Column(db.Float,nullable=True)
+    jensenshannon = db.Column(db.Float,nullable=True)
+    entropy = db.Column(db.Float,nullable=True)
+    precision = db.Column(db.Float,nullable=True)
+    recall = db.Column(db.Float,nullable=True)
+    f1_score = db.Column(db.Float,nullable=True)
 
     dataset_id = db.Column(db.BigInteger, db.ForeignKey('dataset.id'), nullable=False)
 
@@ -42,10 +46,11 @@ class Dataset(db.Model,DictMixin):
     total = db.Column(db.Integer)
     batch_size = db.Column(db.Integer)
     actual_batch = db.Column(db.Integer,nullable=True)
+    isMulti_label = db.Column(db.Boolean)
 
-    status = db.relationship('Status', backref='status', lazy='dynamic')
-    metricas = db.relationship('Metricas', backref='metricas', lazy='dynamic')
-    checkpoints = db.relationship('Checkpoint', backref='checkpoint', lazy='dynamic')
+    status = db.relationship('Status', backref='status', lazy='dynamic',cascade='all, delete')
+    metricas = db.relationship('Metricas', backref='metricas', lazy='dynamic',cascade='all, delete')
+    checkpoints = db.relationship('Checkpoint', backref='checkpoint', lazy='dynamic',cascade='all, delete')
 
 class Checkpoint(db.Model,DictMixin):
     __tablename__ = 'checkpoint'
