@@ -86,7 +86,7 @@ def patch_dataset(dataset_id):
 @app.route('/datasets/<string:dataset_id>/metrics',methods=['POST'])
 def post_metrics(dataset_id:str):
     """
-    Formato do body
+    BODY:
     {
         "accuracy": float,
         "hamming_loss": float,
@@ -103,7 +103,9 @@ def post_metrics(dataset_id:str):
     dados = request.get_json()
     if not dataset:
         return jsonify({'mensagem': 'Dataset não encontrado'}), 404
-    registro = Metricas(batch_id=int(dados['batch_id']),dataset_id=dataset_id)
+    registro:Metricas = Metricas.query.filter(Metricas.dataset_id == dataset_id).filter(Metricas.batch_id == int(dados['batch_id'])).first()
+    if not registro:
+        registro = Metricas(batch_id=int(dados['batch_id']),dataset_id=dataset_id)
     dados = request.get_json()
     for k,v in dados.items():
         setattr(registro, k, v)
