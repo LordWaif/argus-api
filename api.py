@@ -219,7 +219,7 @@ def del_dataset(dataset_id:str):
     bckp = {'dataset':dataset.as_dict(),'metricas':[_.as_dict() for _ in dataset.metricas]}
     if not dataset:
         return jsonify({'mensagem': 'Dataset não encontrado'}), 404
-    backup_filename = f'backups/{datetime.now()}_backup_resource_{dataset_id}.json'
+    backup_filename = f'argus-api/backups/{datetime.now()}_backup_resource_{dataset_id}.json'
     with open(backup_filename, 'w') as backup_file:
         backup_file.write(json.dumps(bckp,default=str))
     for _ in dataset.metricas:
